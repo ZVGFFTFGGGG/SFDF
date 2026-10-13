@@ -1,0 +1,26 @@
+name: cleanup
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clean old releases and runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh release list --limit 100 --json tagName -q '.[].tagName' | grep '^dl-' | tail -n +5 | while read -r tag; do
+            gh release delete "$tag" --cleanup-tag --yes || true
+          done
+          gh api "repos/$REPO/actions/runs?per_page=100" -q '.workflow_runs[] | select(.status == "completed") | .id' | tail -n +11 | while read -r run_id; do
+            gh api -X DELETE "repos/$REPO/actions/runs/$run_id" || true
+          done
