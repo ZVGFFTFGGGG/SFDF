@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>YouTube Proxy</title>
+  <link rel="stylesheet" href="shared/theme.css"/>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hd">
+      <div class="hd__logo">⬇</div>
+      <div style="flex:1;">
+        <h1 style="margin:0;font-size:18px;">YouTube Proxy</h1>
+        <span class="dot" id="conn-dot"></span> <span class="small muted" id="conn-text"></span>
+      </div>
+      <button class="btn" id="settingsBtn" type="button">הגדרות ⚙</button>
+    </header>
+    <section class="card">
+      <label class="small muted">קישור להורדה:</label>
+      <input id="urlInput" class="input" dir="ltr" placeholder="https://www.youtube.com/watch?v=..."/>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+        <label class="small muted" for="collectionToggle">הורדת פלייליסט / ערוץ שלם (ZIP)</label>
+        <input type="checkbox" id="collectionToggle" class="switch"/>
+      </div>
+      <label class="small muted">איכות:</label>
+      <select id="formatSelect" class="input"></select>
+      <button class="btn btn--primary btn--block" id="downloadBtn" type="button">הורד</button>
+      <p id="hint" class="small muted" style="margin:0;"></p>
+    </section>
+    <section class="card">
+      <h2 style="margin:0;font-size:14px;">הורדות</h2>
+      <div id="jobList" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </section>
+  </main>
+  <script src="shared/common.js"></script>
+  <script src="panel.js"></script>
+</body>
+</html>
