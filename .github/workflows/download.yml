@@ -62,7 +62,7 @@ jobs:
           fi
           sudo curl -sSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
           sudo chmod a+rx /usr/local/bin/yt-dlp
-          ffmpeg -version | head -n 1
+          sudo /usr/local/bin/yt-dlp --update-to nightly || true
 
       - name: Decrypt cookies
         if: ${{ inputs.cookies_enc != '' }}
@@ -112,13 +112,20 @@ jobs:
             fi
           }
 
-          if [ -f /tmp/cookies.txt ]; then
-            run_ytdlp "--cookies /tmp/cookies.txt" || true
+          # ניסיון 1: ללא עוגיות עם לקוח android_vr ו-tv_embedded (מונע חסימת עוגיות ובוטים)
+          echo "Attempt 1: Trying android_vr / tv_embedded without cookies..."
+          run_ytdlp "--extractor-args youtube:player_client=android_vr,tv_embedded,ios" || true
+
+          # ניסיון 2: עם עוגיות ולקוח web_creator / mweb אם הניסיון הראשון לא הוריד קובץ
+          if [ -z "$(ls -A /tmp/out)" ] && [ -f /tmp/cookies.txt ]; then
+            echo "Attempt 2: Trying with cookies (web_creator,tv_embedded,mweb)..."
+            run_ytdlp "--cookies /tmp/cookies.txt --extractor-args youtube:player_client=web_creator,tv_embedded,mweb" || true
           fi
 
-          if [ -z "$(ls -A /tmp/out)" ]; then
-            echo "Retrying without cookies..."
-            run_ytdlp "--extractor-args youtube:player_client=default,mweb" || true
+          # ניסיון 3: עם עוגיות בלקוח ברירת מחדל
+          if [ -z "$(ls -A /tmp/out)" ] && [ -f /tmp/cookies.txt ]; then
+            echo "Attempt 3: Trying default client with cookies..."
+            run_ytdlp "--cookies /tmp/cookies.txt" || true
           fi
 
           if [ -z "$(ls -A /tmp/out)" ]; then
