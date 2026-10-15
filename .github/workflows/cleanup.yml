@@ -13,15 +13,29 @@ jobs:
   clean:
     runs-on: ubuntu-latest
     steps:
-      - name: Clean old releases and runs
+      - name: Delete all releases, tags, and workflow runs
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           REPO: ${{ github.repository }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
         run: |
-          gh release list --repo "$REPO" --limit 100 --json tagName -q '.[].tagName' | grep '^dl-' | tail -n +5 | while read -r tag; do
-            gh release delete "$tag" --repo "$REPO" --cleanup-tag --yes || true
+          # 1. מחיקת כל ה-Releases והתגיות במאגר
+          gh release list --repo "$REPO" --limit 100 --json tagName -q '.[].tagName' | while read -r tag; do
+            if [ -n "$tag" ]; then
+              gh release delete "$tag" --repo "$REPO" --cleanup-tag --yes || true
+            fi
           done
-          gh api "repos/$REPO/actions/runs?per_page=100" -q '.workflow_runs[] | select(.status == "completed") | .id' | tail -n +11 | while read -r run_id; do
-            gh api -X DELETE "repos/$REPO/actions/runs/$run_id" || true
+
+          # 2. מחיקת כל הריצות הקיימות במאגר (למעט הריצה הנוכחית שמבצעת את הניקוי)
+          for page in 1 2 3 4 5; do
+            RUN_IDS=$(gh api "repos/$REPO/actions/runs?per_page=100" -q ".workflow_runs[] | select(.id != $CURRENT_RUN_ID) | .id")
+            if [ -z "$RUN_IDS" ]; then
+              break
+            fi
+            echo "$RUN_IDS" | while read -r run_id; do
+              if [ -n "$run_id" ]; then
+                gh api -X DELETE "repos/$REPO/actions/runs/$run_id" || true
+              fi
+            done
           done
