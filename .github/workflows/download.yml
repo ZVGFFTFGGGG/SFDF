@@ -88,8 +88,6 @@ jobs:
           URLS_JSON: ${{ inputs.urls }}
         run: |
           mkdir -p /tmp/out
-          COOKIE_ARGS=""
-          [ -f /tmp/cookies.txt ] && COOKIE_ARGS="--cookies /tmp/cookies.txt"
 
           case "$QUALITY" in
             audio) FMT_ARGS="-x --audio-format mp3 --audio-quality 0" ;;
@@ -99,17 +97,31 @@ jobs:
             *)     FMT_ARGS="-f bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best --merge-output-format mp4" ;;
           esac
 
-          if [ "$MODE" = "list" ] && [ -n "$URLS_JSON" ]; then
-            python3 -c 'import os, json; open("/tmp/urls.txt", "w").write("\n".join(json.loads(os.environ["URLS_JSON"])))'
-            yt-dlp $COOKIE_ARGS $FMT_ARGS --no-playlist -a /tmp/urls.txt -o "/tmp/out/%(title).150B [%(id)s].%(ext)s"
-          elif [ "$MODE" = "collection" ]; then
-            yt-dlp $COOKIE_ARGS $FMT_ARGS --yes-playlist --playlist-end 200 -o "/tmp/out/%(playlist_title,channel)s/%(title).150B [%(id)s].%(ext)s" "$TARGET_URL"
-          else
-            yt-dlp $COOKIE_ARGS $FMT_ARGS --no-playlist -o "/tmp/out/%(title).150B [%(id)s].%(ext)s" "$TARGET_URL"
+          run_ytdlp() {
+            local extra_args="$1"
+            if [ "$MODE" = "list" ] && [ -n "$URLS_JSON" ]; then
+              python3 -c 'import os, json; open("/tmp/urls.txt", "w").write("\n".join(json.loads(os.environ["URLS_JSON"])))'
+              yt-dlp $extra_args $FMT_ARGS --ignore-errors --no-playlist -a /tmp/urls.txt -o "/tmp/out/%(title).150B [%(id)s].%(ext)s"
+            elif [ "$MODE" = "collection" ]; then
+              yt-dlp $extra_args $FMT_ARGS --ignore-errors --yes-playlist --playlist-end 200 -o "/tmp/out/%(playlist_title,channel)s/%(title).150B [%(id)s].%(ext)s" "$TARGET_URL"
+            else
+              yt-dlp $extra_args $FMT_ARGS --no-playlist -o "/tmp/out/%(title).150B [%(id)s].%(ext)s" "$TARGET_URL"
+            fi
+          }
+
+          # ניסיון ראשון: עם עוגיות (אם קיימות)
+          if [ -f /tmp/cookies.txt ]; then
+            run_ytdlp "--cookies /tmp/cookies.txt" || true
+          fi
+
+          # ניסיון שני (גיבוי): ללא עוגיות אם לא ירד קובץ בניסיון הראשון
+          if [ -z "$(ls -A /tmp/out)" ]; then
+            echo "Retrying without cookies..."
+            run_ytdlp "--extractor-args youtube:player_client=default,mweb" || true
           fi
 
           if [ -z "$(ls -A /tmp/out)" ]; then
-            echo "::error::לא ירדו קבצים מהקישור"
+            echo "::error::הסרטון אינו זמין ביוטיוב או חסום לצפייה משרתי ארה״ב"
             exit 1
           fi
 
