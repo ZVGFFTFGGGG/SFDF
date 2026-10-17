@@ -1,7 +1,0 @@
-.ytproxy-btn {
-  display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 18px;
-  padding: 0 14px; height: 36px; margin-inline-start: 8px; cursor: pointer;
-  font-family: inherit; font-size: 14px; font-weight: 500;
-  background: rgba(128, 128, 128, 0.18); color: inherit;
-}
-.ytproxy-btn:hover { background: rgba(128, 128, 128, 0.28); }
